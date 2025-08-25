@@ -4,7 +4,7 @@ import { map } from 'rxjs/operators';
 import { CartItem, CartSummary, Product } from '../../shared/models';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class ShoppingCartRxjsService {
   // TODO: Create a private BehaviorSubject to hold cart items
@@ -15,7 +15,7 @@ export class ShoppingCartRxjsService {
   // - It's a special type of Subject that requires an initial value
   // SYNTAX: private itemsSubject = new BehaviorSubject<CartItem[]>([]);
   private itemsSubject = new BehaviorSubject<CartItem[]>([]);
-  
+
   // TODO: Create a public observable that components can subscribe to
   // HINT: Use asObservable() to expose the subject as an observable
   // LEARNING: This pattern hides the Subject's next() method from consumers
@@ -28,6 +28,7 @@ export class ShoppingCartRxjsService {
     // HINT: Call loadCartFromStorage() method
     // LEARNING: Initialize cart state when service is created
     this.loadCartFromStorage();
+    console.log('Cart initialized');
   }
 
   // TODO: Implement addItem method
@@ -36,7 +37,7 @@ export class ShoppingCartRxjsService {
   // 2. If exists: increase quantity by 1 using updateQuantity()
   // 3. If not exists: create new CartItem and add to cart
   // 4. Save to localStorage after changes
-  // 
+  //
   // BUSINESS LOGIC:
   // - Each product can only appear once in cart (different quantities)
   // - New items start with quantity = 1
@@ -50,7 +51,33 @@ export class ShoppingCartRxjsService {
   // - Generate ID: this.generateId()
   addItem(product: Product): void {
     // TODO: Implement this method
-    throw new Error('addItem method not implemented yet');
+    //throw new Error('addItem method not implemented yet');
+    const currentItems = this.itemsSubject.value;
+    const existingItem = currentItems.find(
+      (item) => item.productId === product.id
+    );
+
+    if (existingItem) {
+      // TODO: Update quantity
+      existingItem.quantity += 1;
+    } else {
+      // TODO: Create new CartItem and add to array
+      const newItem: CartItem = {
+        id: this.generateId(),
+        productId: product.id,
+        name: product.name,
+        price: product.price,
+        quantity: 1,
+        image: product.image,
+        category: product.category,
+        discount: product.discount,
+      };
+      currentItems.push(newItem);
+    }
+
+    // TODO: Update BehaviorSubject and save to storage
+    this.itemsSubject.next(currentItems);
+    this.saveCartToStorage();
   }
 
   // TODO: Implement removeItem method
@@ -66,7 +93,11 @@ export class ShoppingCartRxjsService {
   // - Save: this.saveCartToStorage()
   removeItem(productId: string): void {
     // TODO: Implement this method
-    throw new Error('removeItem method not implemented yet');
+    //throw new Error('removeItem method not implemented yet');
+    const currentItems = this.itemsSubject.value;
+    const updatedItems = currentItems.filter(item => item.productId !== productId);
+    this.itemsSubject.next(updatedItems);
+    this.saveCartToStorage();
   }
 
   // TODO: Implement updateQuantity method
@@ -85,7 +116,17 @@ export class ShoppingCartRxjsService {
   // - Use spread operator for immutable updates: { ...item, quantity }
   updateQuantity(productId: string, quantity: number): void {
     // TODO: Implement this method
-    throw new Error('updateQuantity method not implemented yet');
+    //throw new Error('updateQuantity method not implemented yet');
+    if (quantity <=0 ) {
+      this.removeItem(productId);
+    } else {
+      const currentItems = this.itemsSubject.value;
+      const updatedItems = currentItems.map(item =>
+        item.productId === productId ? { ...item, quantity } : item
+      );
+      this.itemsSubject.next(updatedItems);
+      this.saveCartToStorage();
+    }
   }
 
   // TODO: Implement clearCart method
@@ -98,7 +139,9 @@ export class ShoppingCartRxjsService {
   // - Call this.saveCartToStorage()
   clearCart(): void {
     // TODO: Implement this method
-    throw new Error('clearCart method not implemented yet');
+    //throw new Error('clearCart method not implemented yet');
+    this.itemsSubject.next([]);
+    this.saveCartToStorage();
   }
 
   // TODO: Implement getCartSummary method that returns Observable<CartSummary>
@@ -128,27 +171,27 @@ export class ShoppingCartRxjsService {
   getCartSummary(): Observable<CartSummary> {
     // TODO: Implement this method
     // SYNTAX HINT:
-    // return this.items$.pipe(
-    //   map(items => {
-    //     const totalItems = items.reduce(...);
-    //     const totalPrice = items.reduce(...);
-    //     const totalDiscount = items.reduce(...);
-    //     const tax = (totalPrice - totalDiscount) * 0.08;
-    //     const finalPrice = totalPrice - totalDiscount + tax;
-    //     return { totalItems, totalPrice, totalDiscount, tax, finalPrice };
-    //   })
-    // );
-    
-    // TEMPORARY: Return empty summary observable for compilation - students must implement calculations
     return this.items$.pipe(
-      map(() => ({
-        totalItems: 0,
-        totalPrice: 0,
-        totalDiscount: 0,
-        tax: 0,
-        finalPrice: 0
-      }))
+      map(items => {
+        const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
+        const totalPrice = items.reduce((sum, item) => sum  + item.price * item.quantity, 0);
+        const totalDiscount = items.reduce((sum, item) => sum + (item.price * item.quantity * (item.discount || 0) / 100), 0);
+        const tax = (totalPrice - totalDiscount) * 0.08;
+        const finalPrice = totalPrice - totalDiscount + tax;
+        return { totalItems, totalPrice, totalDiscount, tax, finalPrice };
+      })
     );
+
+    // TEMPORARY: Return empty summary observable for compilation - students must implement calculations
+    // return this.items$.pipe(
+    //   map(() => ({
+    //     totalItems: 0,
+    //     totalPrice: 0,
+    //     totalDiscount: 0,
+    //     tax: 0,
+    //     finalPrice: 0,
+    //   }))
+    // );
   }
 
   // TODO: Implement getTotalItems method
@@ -162,14 +205,12 @@ export class ShoppingCartRxjsService {
   getTotalItems(): Observable<number> {
     // TODO: Implement this method
     // SYNTAX HINT:
-    // return this.items$.pipe(
-    //   map(items => items.reduce((sum, item) => sum + item.quantity, 0))
-    // );
-    
-    // TEMPORARY: Return zero items observable for compilation - students must implement counting
     return this.items$.pipe(
-      map(() => 0)
+      map(items => items.reduce((sum, item) => sum + item.quantity, 0))
     );
+
+    // TEMPORARY: Return zero items observable for compilation - students must implement counting
+    //return this.items$.pipe(map(() => 0));
   }
 
   // Helper methods (already implemented for you)
@@ -180,7 +221,10 @@ export class ShoppingCartRxjsService {
 
   private saveCartToStorage(): void {
     if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('cart-items', JSON.stringify(this.itemsSubject.value));
+      localStorage.setItem(
+        'cart-items',
+        JSON.stringify(this.itemsSubject.value)
+      );
     }
   }
 
