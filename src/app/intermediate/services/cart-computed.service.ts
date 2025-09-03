@@ -2,10 +2,9 @@ import { Injectable, signal, computed, effect } from '@angular/core';
 import { CartItem, CartSummary, Product } from '../../shared/models';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class CartComputedService {
-  
   // TODO: Create private writable signals for cart state
   // HINT: Use signal<CartItem[]>([]) for items
   // HINT: Use signal<string>('all') for selectedCategory
@@ -55,14 +54,23 @@ export class CartComputedService {
   //   return { totalItems, totalPrice, totalDiscount, tax, finalPrice };
   // });
   public readonly cartSummary = computed<CartSummary>(() => {
+    const items = this.items();
+    console.log('💚Items: ', items);
+    const totalItems = items.reduce((acc, item) => {
+      return acc + item.quantity;
+    }, 0);
+    const totalPrice = items.reduce((acc, item) => {
+      return acc + item.price * item.quantity;
+    }, 0);
+
     // TODO: Implement advanced cart summary calculation
     // TEMPORARY: Return empty summary for compilation - students must implement proper calculations
     return {
-      totalItems: 0,
-      totalPrice: 0,
+      totalItems: totalItems,
+      totalPrice: totalPrice,
       totalDiscount: 0,
       tax: 0,
-      finalPrice: 0
+      finalPrice: 0,
     };
   });
 
@@ -108,7 +116,7 @@ export class CartComputedService {
     // TEMPORARY: Return basic stats structure for compilation - students must implement proper analysis
     return [
       { category: 'electronics', itemCount: 0, totalValue: 0 },
-      { category: 'clothing', itemCount: 0, totalValue: 0 }
+      { category: 'clothing', itemCount: 0, totalValue: 0 },
     ];
   });
 
@@ -134,7 +142,7 @@ export class CartComputedService {
       hasDiscounts: false,
       discountedItemsCount: 0,
       totalSavings: 0,
-      averageDiscount: 0
+      averageDiscount: 0,
     };
   });
 
@@ -158,7 +166,7 @@ export class CartComputedService {
       isFreeShipping: false, // Template compatibility
       shippingCost: 15,
       amountForFreeShipping: 500,
-      estimatedDelivery: '5-7 business days'
+      estimatedDelivery: '5-7 business days',
     };
   });
 
@@ -177,7 +185,7 @@ export class CartComputedService {
     return {
       suggestedCategories: [],
       totalUniqueItems: 0,
-      averageItemPrice: 0
+      averageItemPrice: 0,
     };
   });
 
